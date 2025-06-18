@@ -5,6 +5,9 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 import docx
+from fpdf import FPDF
+import markdown
+from weasyprint import HTML
 
 load_dotenv(dotenv_path=".env")
 
@@ -33,6 +36,19 @@ def extract_text_from_docx(docx_file):
     for para in doc.paragraphs:
         full_text.append(para.text)
     return '\n'.join(full_text)
+
+
+def create_pdf(text, filename="analysis.pdf"):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_font("Arial", size=12)
+    for line in text.split('\n'):
+        pdf.multi_cell(0, 10, line)
+    # Зберігаємо в bytes замість файлу
+    pdf_output = pdf.output(dest='S').encode('latin1')
+    return pdf_output
+
 
 
 def extract_text_from_file(uploaded_file):
@@ -74,6 +90,14 @@ if analyze and uploaded_file:
         )
         st.markdown("### Analysis Results")
         st.markdown(response.choices[0].message.content)
+
+        pdf_bytes = create_pdf(response.choices[0].message.content)
+        st.download_button(
+            label="Download analysis as PDF",
+            data=pdf_bytes,
+            file_name="analysis.pdf",
+            mime="application/pdf"
+        )
 
     except Exception as e: 
         st.error(f"An error has happened")
